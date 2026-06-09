@@ -1,0 +1,773 @@
+html
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>個人化減重打卡追蹤系統 | 精準記錄 · 堅持蛻變</title>
+    <!-- Chart.js CDN 輕量圖表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', 'PingFang TC', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: #eef2f5;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1F4E78 0%, #2E75B6 100%);
+            color: white;
+            padding: 28px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.9rem;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .content {
+            padding: 28px 24px;
+        }
+
+        /* 表單樣式 */
+        form {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 18px;
+            background: #F9FBFD;
+            padding: 24px 20px;
+            border-radius: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            border: 1px solid #E9EDF2;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1F4E78;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        label i {
+            font-style: normal;
+            font-weight: normal;
+        }
+
+        input, select {
+            padding: 10px 12px;
+            border: 1.5px solid #DCE3E9;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2E75B6;
+            box-shadow: 0 0 0 3px rgba(46,117,182,0.15);
+        }
+
+        button {
+            background: #1F4E78;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 12px 0;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: #123a5a;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(31,78,120,0.25);
+        }
+
+        .section-title {
+            color: #1F4E78;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-left: 6px solid #2E75B6;
+            padding-left: 16px;
+            margin: 28px 0 18px 0;
+        }
+
+        .chart-container {
+            background: #FFFFFF;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: 1px solid #EFF3F8;
+            height: 320px;
+            position: relative;
+        }
+
+        canvas {
+            max-height: 300px;
+            width: 100%;
+        }
+
+        .empty-chart-message {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #8ba0b2;
+            font-weight: 500;
+            font-size: 1rem;
+            background: #FCFDFF;
+            border-radius: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #ECF0F5;
+            background: white;
+            margin-top: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 700px;
+        }
+
+        th {
+            background: #EFF5FA;
+            color: #1F4E78;
+            padding: 14px 8px;
+            font-weight: 700;
+            border-bottom: 1px solid #DAE3EC;
+        }
+
+        td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 1px solid #E9EEF3;
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background-color: #F8FBFE;
+        }
+
+        .delete-btn {
+            background: #DC3545;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .delete-btn:hover {
+            background: #b02a37;
+            transform: scale(0.97);
+        }
+
+        .clear-btn {
+            background: #6C757D;
+            margin-top: 24px;
+            width: 100%;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .clear-btn:hover {
+            background: #495057;
+        }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1F4E78;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-weight: 500;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            font-size: 0.9rem;
+        }
+
+        .badge-success {
+            background: #28a74520;
+            color: #1e7e34;
+            font-weight: bold;
+            border-radius: 40px;
+            padding: 4px 8px;
+            display: inline-block;
+        }
+
+        .badge-miss {
+            background: #dc354520;
+            color: #b02a37;
+            font-weight: bold;
+            border-radius: 40px;
+            padding: 4px 8px;
+        }
+
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #9aaebf;
+            padding: 18px;
+            border-top: 1px solid #EFF3F8;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .content {
+                padding: 16px;
+            }
+            .section-title {
+                font-size: 1.3rem;
+            }
+            th, td {
+                padding: 8px 4px;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>⚡ 減重打卡 · 蛻變軌跡</h1>
+        <p>紀錄每日習慣 · 體態進化可視化</p>
+    </div>
+    <div class="content">
+        <h2 class="section-title">📝 新增今日紀錄</h2>
+        <form id="trackerForm" novalidate>
+            <div class="form-group">
+                <label>📅 日期</label>
+                <input type="date" id="date" required>
+            </div>
+            <div class="form-group">
+                <label>⚖️ 體重 (kg)</label>
+                <input type="number" id="weight" step="0.1" placeholder="例如 72.5" required>
+            </div>
+            <div class="form-group">
+                <label>🥗 飲食目標達成？</label>
+                <select id="diet" required>
+                    <option value="是">✅ 是，有控制熱量</option>
+                    <option value="否">⚠️ 否，超標了</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>💧 飲水量 (ml)</label>
+                <input type="number" id="water" placeholder="目標 3000ml" required>
+            </div>
+            <div class="form-group">
+                <label>👣 步數</label>
+                <input type="number" id="steps" placeholder="目標 7000步" required>
+            </div>
+            <div class="form-group">
+                <label>🏋️ 運動 (分鐘)</label>
+                <input type="number" id="workout" placeholder="例如 30" required>
+            </div>
+            <div class="form-group">
+                <label>😴 睡眠 (小時)</label>
+                <input type="number" id="sleep" step="0.5" placeholder="7.5" required>
+            </div>
+            <button type="submit" id="saveBtn">💾 儲存今日紀錄</button>
+        </form>
+
+        <h2 class="section-title">📉 體重變化趨勢</h2>
+        <div class="chart-container">
+            <canvas id="weightChart"></canvas>
+            <div id="chartEmptyMessage" style="display: none; text-align: center; padding: 40px; color: #8ba0b2;">✨ 尚無體重數據，新增記錄後圖表即出現 ✨</div>
+        </div>
+
+        <h2 class="section-title">📋 歷史打卡紀錄</h2>
+        <div class="table-container">
+            <table id="historyTable">
+                <thead>
+                    <tr><th>日期</th><th>體重(kg)</th><th>飲食達標</th><th>飲水(ml)</th><th>步數</th><th>運動(分)</th><th>睡眠(小時)</th><th>操作</th></tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="8" style="text-align:center;">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <button id="clearDataBtn" class="clear-btn">🗑️ 清除所有資料</button>
+        <footer>✔️ 所有資料自動儲存於瀏覽器 | 堅持紀錄看見改變</footer>
+    </div>
+</div>
+<div id="toastMsg" class="toast-msg"></div>
+
+<script>
+    // ----- 強化版儲存系統：唯一ID、防錯、嚴謹驗證 -----
+    const STORAGE_KEY = 'weightLossRecords_pro';
+    let weightChartInstance = null;
+    let records = [];          // 結構 { id, date, weight, diet, water, steps, workout, sleep }
+
+    // 輔助: 顯示即時浮動訊息
+    function showMessage(text, isError = false) {
+        const toast = document.getElementById('toastMsg');
+        toast.textContent = text;
+        toast.style.backgroundColor = isError ? '#b02a37' : '#1F4E78';
+        toast.style.opacity = '1';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+        }, 2200);
+    }
+
+    // 檢查 localStorage 可用性
+    function isStorageAvailable() {
+        try {
+            const test = '__storage_test__';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // 載入資料 + 資料遷移 (自動補 id，避免舊版無 id 造成刪除混亂)
+    function loadRecords() {
+        if (!isStorageAvailable()) {
+            showMessage("⚠️ 瀏覽器儲存功能無法使用，資料將不會被保存！", true);
+            return [];
+        }
+        const stored = localStorage.getItem(STORAGE_KEY);
+        let data = stored ? JSON.parse(stored) : [];
+        // 確保每筆紀錄都有唯一 id 以及數值欄位正確
+        let needUpdate = false;
+        for (let i = 0; i < data.length; i++) {
+            if (!data[i].id) {
+                data[i].id = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + i + '-' + Math.random();
+                needUpdate = true;
+            }
+            // 確保數值類型 (避免字串造成比較錯誤)
+            data[i].weight = parseFloat(data[i].weight);
+            data[i].water = parseInt(data[i].water, 10);
+            data[i].steps = parseInt(data[i].steps, 10);
+            data[i].workout = parseInt(data[i].workout, 10);
+            data[i].sleep = parseFloat(data[i].sleep);
+            // 兼容舊版飲食若為中文
+            if (data[i].diet !== '是' && data[i].diet !== '否') data[i].diet = '否';
+        }
+        if (needUpdate) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+        return data;
+    }
+
+    function saveRecordsToLocal() {
+        if (!isStorageAvailable()) {
+            showMessage("儲存失敗：瀏覽器不支援 local storage", true);
+            return false;
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        return true;
+    }
+
+    // 輔助: 驗證單筆紀錄完整性
+    function validateRecord(record) {
+        if (!record.date) return "日期不可為空";
+        if (isNaN(record.weight) || record.weight <= 0 || record.weight > 300) return "請輸入有效體重 (1~300 kg)";
+        if (isNaN(record.water) || record.water < 0 || record.water > 10000) return "飲水量需為 0~10000 ml";
+        if (isNaN(record.steps) || record.steps < 0 || record.steps > 100000) return "步數需為 0~100000";
+        if (isNaN(record.workout) || record.workout < 0 || record.workout > 1440) return "運動時間需為 0~1440 分鐘";
+        if (isNaN(record.sleep) || record.sleep < 0 || record.sleep > 24) return "睡眠時間需為 0~24 小時";
+        return null;
+    }
+
+    // 新增或更新 (同一天只保留最新一筆，覆蓋策略)
+    function addOrUpdateRecord(newRecordRaw) {
+        // 複製並標準化
+        const record = {
+            id: null,
+            date: newRecordRaw.date,
+            weight: parseFloat(newRecordRaw.weight),
+            diet: newRecordRaw.diet,
+            water: parseInt(newRecordRaw.water, 10),
+            steps: parseInt(newRecordRaw.steps, 10),
+            workout: parseInt(newRecordRaw.workout, 10),
+            sleep: parseFloat(newRecordRaw.sleep),
+        };
+        const validationErr = validateRecord(record);
+        if (validationErr) {
+            showMessage(validationErr, true);
+            return false;
+        }
+
+        // 檢查相同日期是否存在
+        const existingIndex = records.findIndex(r => r.date === record.date);
+        if (existingIndex !== -1) {
+            // 保留原有 id，更新其他資料
+            record.id = records[existingIndex].id;
+            records[existingIndex] = record;
+            showMessage(`✅ 已更新 ${record.date} 的紀錄！`, false);
+        } else {
+            record.id = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random();
+            records.push(record);
+            showMessage(`🎉 新增 ${record.date} 打卡成功！繼續堅持`, false);
+        }
+        // 儲存至 localStorage
+        if (!saveRecordsToLocal()) return false;
+        return true;
+    }
+
+    // 刪除紀錄 (基於 ID 安全刪除)
+    function deleteRecordById(recordId) {
+        const beforeLen = records.length;
+        records = records.filter(r => r.id !== recordId);
+        if (records.length !== beforeLen) {
+            saveRecordsToLocal();
+            updateUI();
+            showMessage("🗑️ 已刪除該筆紀錄", false);
+        } else {
+            showMessage("找不到該筆紀錄", true);
+        }
+    }
+
+    // 清除全部資料
+    function clearAllData() {
+        if (records.length === 0) {
+            showMessage("目前沒有任何資料需要清除", false);
+            return;
+        }
+        if (confirm("⚠️ 確定刪除所有減重打卡紀錄？這個動作無法還原！")) {
+            records = [];
+            saveRecordsToLocal();
+            updateUI();
+            showMessage("已清除所有資料，重新開始吧 💪", false);
+        }
+    }
+
+    // ---------- 圖表渲染 (防崩潰) ----------
+    function renderChart() {
+        const canvas = document.getElementById('weightChart');
+        const emptyDiv = document.getElementById('chartEmptyMessage');
+        if (!canvas) return;
+        
+        // 依照日期排序 (升序，由舊到新)
+        const sortedRecords = [...records].sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (sortedRecords.length === 0) {
+            if (weightChartInstance) {
+                weightChartInstance.destroy();
+                weightChartInstance = null;
+            }
+            canvas.style.display = 'none';
+            emptyDiv.style.display = 'block';
+            return;
+        }
+        
+        canvas.style.display = 'block';
+        emptyDiv.style.display = 'none';
+        
+        const labels = sortedRecords.map(r => {
+            const datePart = r.date.slice(5);  // MM-DD
+            return datePart;
+        });
+        const weightData = sortedRecords.map(r => r.weight);
+        
+        const ctx = canvas.getContext('2d');
+        if (weightChartInstance) {
+            weightChartInstance.destroy();
+        }
+        
+        try {
+            weightChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '體重 (kg)',
+                        data: weightData,
+                        borderColor: '#1F4E78',
+                        backgroundColor: 'rgba(31, 78, 120, 0.08)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2E75B6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.25,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        tooltip: { backgroundColor: '#1F4E78', titleColor: '#FFF', bodyColor: '#f0f0f0' },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: '體重 (kg)', color: '#1F4E78' },
+                            beginAtZero: false,
+                            suggestedMin: Math.min(...weightData) - 2,
+                            suggestedMax: Math.max(...weightData) + 2,
+                            grid: { color: '#E9ECEF' }
+                        },
+                        x: {
+                            title: { display: true, text: '日期 (月-日)', color: '#1F4E78' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            console.warn("圖表繪製錯誤", err);
+            emptyDiv.style.display = 'block';
+            emptyDiv.innerHTML = '⚠️ 圖表載入錯誤，但記錄功能正常 ⚠️';
+            canvas.style.display = 'none';
+        }
+    }
+
+    // 表格渲染 (最新日期在上面)
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        if (!tbody) return;
+        
+        if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 32px;">✨ 尚無任何打卡紀錄，快開始你的蛻變旅程 ✨</td></tr>';
+            return;
+        }
+        
+        // 按照日期倒序 (新 -> 舊)
+        const sortedDesc = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+        tbody.innerHTML = '';
+        
+        sortedDesc.forEach(record => {
+            const tr = document.createElement('tr');
+            // 飲食標籤美化
+            const dietBadge = record.diet === '是' 
+                ? '<span class="badge-success">✅ 達成</span>' 
+                : '<span class="badge-miss">❌ 未達成</span>';
+            
+            tr.innerHTML = `
+                <td style="font-weight:600;">${record.date}</td>
+                <td><strong>${record.weight.toFixed(1)} kg</strong></td>
+                <td>${dietBadge}</td>
+                <td>${record.water.toLocaleString()} ml</td>
+                <td>${record.steps.toLocaleString()}</td>
+                <td>${record.workout} 分</td>
+                <td>${record.sleep.toFixed(1)} h</td>
+                <td><button class="delete-btn" data-id="${record.id}">刪除</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        // 綁定刪除事件 (事件委託更安全，避免 onclick 字串全局混亂)
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.removeEventListener('click', handleDeleteClick);
+            btn.addEventListener('click', handleDeleteClick);
+        });
+    }
+    
+    function handleDeleteClick(e) {
+        e.stopPropagation();
+        const btn = e.currentTarget;
+        const id = btn.getAttribute('data-id');
+        if (id && confirm('❓ 確定要刪除這筆打卡紀錄嗎？')) {
+            deleteRecordById(id);
+        }
+    }
+    
+    // ----- 統一更新 UI (圖表 + 表格) -----
+    function updateUI() {
+        renderChart();
+        renderTable();
+    }
+    
+    // ----- 處理表單提交 (可靠記錄) -----
+    function setupFormHandler() {
+        const form = document.getElementById('trackerForm');
+        if (!form) return;
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 取得表單值
+            const dateInput = document.getElementById('date').value;
+            const weightInput = document.getElementById('weight').value;
+            const dietVal = document.getElementById('diet').value;
+            const waterInput = document.getElementById('water').value;
+            const stepsInput = document.getElementById('steps').value;
+            const workoutInput = document.getElementById('workout').value;
+            const sleepInput = document.getElementById('sleep').value;
+            
+            // 基本空值檢查
+            if (!dateInput) {
+                showMessage("請選擇日期", true);
+                return;
+            }
+            if (!weightInput || weightInput.trim() === "") {
+                showMessage("請填寫體重", true);
+                return;
+            }
+            if (!waterInput || waterInput.trim() === "") {
+                showMessage("請填寫飲水量", true);
+                return;
+            }
+            if (!stepsInput || stepsInput.trim() === "") {
+                showMessage("請填寫步數", true);
+                return;
+            }
+            if (!workoutInput || workoutInput.trim() === "") {
+                showMessage("請填寫運動分鐘數", true);
+                return;
+            }
+            if (!sleepInput || sleepInput.trim() === "") {
+                showMessage("請填寫睡眠時數", true);
+                return;
+            }
+            
+            const newRecordRaw = {
+                date: dateInput,
+                weight: parseFloat(weightInput),
+                diet: dietVal,
+                water: parseInt(waterInput, 10),
+                steps: parseInt(stepsInput, 10),
+                workout: parseInt(workoutInput, 10),
+                sleep: parseFloat(sleepInput)
+            };
+            
+            // 進階驗證
+            if (isNaN(newRecordRaw.weight) || newRecordRaw.weight <= 0) {
+                showMessage("體重必須是正數 (kg)", true);
+                return;
+            }
+            if (isNaN(newRecordRaw.water) || newRecordRaw.water < 0) {
+                showMessage("飲水量請輸入有效數字", true);
+                return;
+            }
+            if (isNaN(newRecordRaw.steps) || newRecordRaw.steps < 0) {
+                showMessage("步數請輸入有效數字", true);
+                return;
+            }
+            if (isNaN(newRecordRaw.workout) || newRecordRaw.workout < 0) {
+                showMessage("運動分鐘數須為0以上", true);
+                return;
+            }
+            if (isNaN(newRecordRaw.sleep) || newRecordRaw.sleep <= 0) {
+                showMessage("睡眠時數請填寫有效時數", true);
+                return;
+            }
+            
+            const success = addOrUpdateRecord(newRecordRaw);
+            if (success) {
+                // 更新全 UI
+                updateUI();
+                // 重置表單，保留今天的日期方便連續新增，但不清除日期方便連日紀錄？實務上保持表單但可清空部分? 可以保留日期自動改為明天？但是最好是讓日期保持今天或使用者自訂，我們不清空日期，但使用者可直接修改日期繼續新增。
+                // 預設不清空其他欄位，但讓體驗更優: 保留今天日期，其他欄位保留預設? 但為了方便連續打卡，建議不清空
+                // 但為了避免不小心覆蓋同一天，使用者可以留意。通常覆蓋策略是明智的，不清空。
+                // 簡單將體重等欄位不清除，但可focus體重。但為了UX: 保留現有值, 日期保持原本用戶選的? 但最好是保留今天的日期或讓用戶手動修改。不做額外reset。
+                // 可滑動自動將日期設為明天的智能？不需要太多，留給用戶操作。
+                // 但最好讓表單的日期欄位自動設為明天? 不符合某些人習慣，不做了。
+                // 只是重新整理表格後，保留原有值。
+                // 輕微刷新: 表單體重欄位可以highlight一下，以示成功。
+                const weightField = document.getElementById('weight');
+                weightField.style.borderColor = '#28a745';
+                setTimeout(() => { weightField.style.borderColor = '#DCE3E9'; }, 800);
+            } else {
+                // 錯誤訊息已經 showMessage 顯示
+            }
+        });
+    }
+    
+    // 加載初始預設日期：今天日期自動填入
+    function setDefaultDate() {
+        const dateField = document.getElementById('date');
+        if (dateField) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            dateField.value = `${yyyy}-${mm}-${dd}`;
+        }
+    }
+    
+    // 監聽清除全部資料按鈕
+    function bindClearButton() {
+        const clearBtn = document.getElementById('clearDataBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearAllData);
+        }
+    }
+    
+    // 初始化程式入口
+    function init() {
+        if (!isStorageAvailable()) {
+            showMessage("⚠️ 儲存功能受限，無法保存記錄，請允許本地儲存。", true);
+        }
+        records = loadRecords();
+        setDefaultDate();
+        setupFormHandler();
+        bindClearButton();
+        updateUI();          // 顯示歷史資料及圖表
+        // 對步數/飲水等輸入輔助 placeholder 友好提示
+        const waterInput = document.getElementById('water');
+        if (waterInput && !waterInput.value) waterInput.placeholder = "建議3000ml";
+        const stepsInput = document.getElementById('steps');
+        if (stepsInput && !stepsInput.value) stepsInput.placeholder = "目標7000步";
+    }
+    
+    // 啟動整個系統
+    init();
+</script>
+</body>
+</html>
